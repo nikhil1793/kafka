@@ -1,7 +1,6 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { async } from 'rxjs';
-import { ConsumerService } from './kafka/consumer.service';
-import { USERS_TOPIC } from './kafka/kafka.base';
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { KafkaMessage } from "kafkajs";
+import { ConsumerService } from "./kafka/consumer.service";
 
 @Injectable()
 export class SecondConsumer implements OnModuleInit {
@@ -9,19 +8,12 @@ export class SecondConsumer implements OnModuleInit {
   constructor(private readonly consumerService: ConsumerService) {}
 
   async onModuleInit() {
-    await this.consumerService.consume(
-      {
-        topics: [USERS_TOPIC],
+    await this.consumerService.consume({
+      topics: { topics: ["Users"] },
+      config: { groupId: "group-2" },
+      onMessage: async (message: KafkaMessage) => {
+        this.logger.log(message.value.toString());
       },
-      {
-        eachMessage: async ({ topic, partition, message }) => {
-          this.logger.log({
-            value: message.value.toString(),
-            partition: partition.toString(),
-            topic: topic,
-          });
-        },
-      },
-    );
+    });
   }
 }

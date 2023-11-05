@@ -1,21 +1,12 @@
 import { Controller, Get } from '@nestjs/common';
-import { USERS_TOPIC } from './kafka/kafka.base';
-import { ProducerService } from './kafka/producer.service';
+import { AppService } from './app.service';
 
 @Controller()
 export class AppController {
-  constructor(private readonly producerService: ProducerService) {}
+  constructor(private readonly appServive: AppService) {}
 
   @Get()
   async getHello() {
-    await this.producerService.produce({
-      topic: USERS_TOPIC,
-      messages: [
-        {
-          value: 'Hello World!!!'
-        }
-      ]
-    });
-    return 'Hello World!!';
+    return this.appServive.getHello();
   }
 }
