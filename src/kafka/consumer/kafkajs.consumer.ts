@@ -2,6 +2,7 @@ import { Logger } from "@nestjs/common";
 import { Consumer, ConsumerConfig, ConsumerSubscribeTopics, Kafka, KafkaMessage } from "kafkajs";
 import { sleep } from "../util/sleep";
 import { IConsumer } from "./consumer.interface";
+import * as retry from "async-retry";
 
 export class KafkaJsConsumer implements IConsumer {
   private readonly kafka: Kafka;
@@ -40,7 +41,16 @@ export class KafkaJsConsumer implements IConsumer {
     await this.consumer.run({
       eachMessage: async ({ message, partition }) => {
         this.logger.debug(`Processing partition : ${partition}`);
-        await onMessage(message);
+        try {
+          await retry(async () => onMessage(message), {
+            retries: 3,
+            onRetry: (error, attempt) => {
+              this.logger.error(`Error consuming message, executig retry ${attempt}`, error);
+            },
+          });
+        } catch (error) {
+          this.logger.error(`Error consuming message, adding to Dead Letter Queue - Database`, error);
+        }
       },
     });
   }
